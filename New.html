@@ -1,45 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="UTF-8">
+<title>Reagan Secrest - Resume</title>
 
-<title>Reagan Resume</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
 <link rel="icon" type="image/jpeg" href="favicon.jpg">
 
 <style>
 html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: #000;
+    margin: 0;
+    height: 100%;
+    background: #111;
 }
 
-/* Full screen native PDF container */
-.viewer {
-  position: fixed;
-  inset: 0;
+/* PDF container */
+.container {
+    height: calc(100vh - 70px);
+    width: 100vw;
 }
 
-/* iframe behaves like native PDF viewer */
 iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: white;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: white;
+}
+
+/* bottom bar */
+.bottom-bar {
+    height: 70px;
+    width: 100%;
+    background: #0d0d0d;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-top: 1px solid #333;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+}
+
+/* button */
+button {
+    padding: 12px 18px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #1e90ff;
+    color: white;
 }
 </style>
 </head>
 
 <body>
 
-<div class="viewer">
-  <iframe
-    src="https://solitary-bar-13d6.luisandreagan.workers.dev/pdf"
-    loading="eager"
-  ></iframe>
+<div class="container">
+    <iframe src="https://solitary-bar-13d6.luisandreagan.workers.dev/pdf"></iframe>
 </div>
+
+<div class="bottom-bar">
+    <button onclick="addContact()">Add Contact</button>
+</div>
+
+<script>
+function addContact() {
+    const vcard = `
+BEGIN:VCARD
+VERSION:3.0
+FN:Reagan Secrest
+TEL:321-098-8372
+END:VCARD
+`;
+
+    const blob = new Blob([vcard], { type: "text/vcard" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "reagan-secrest.vcf";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
 
 </body>
 </html>
