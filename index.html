@@ -13,29 +13,33 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #f5f5f5;
+  background: #111;
   overflow: hidden;
 }
 
-/* Viewer container */
+/* Scroll container */
 #viewerContainer {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 10px 0;
+  background: #111;
+  padding: 0;
 }
 
-/* Canvas pages */
+/* Each page is centered and always fits */
+.page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+}
+
+/* Canvas auto-centers */
 canvas {
   display: block;
-  margin: 0 auto 10px auto;
-  width: 95vw !important;
-  height: auto !important;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  margin: 0 auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   background: white;
 }
 </style>
@@ -46,7 +50,6 @@ canvas {
 
 <div id="viewerContainer"></div>
 
-<!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <script>
@@ -54,35 +57,47 @@ const url = "https://solitary-bar-13d6.luisandreagan.workers.dev/pdf";
 
 const container = document.getElementById("viewerContainer");
 
-// PDF.js setup
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 async function renderPDF() {
-  const loadingTask = pdfjsLib.getDocument(url);
-  const pdf = await loadingTask.promise;
+  const pdf = await pdfjsLib.getDocument(url).promise;
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
 
-    const viewport = page.getViewport({ scale: 1.5 });
+    const viewport = page.getViewport({ scale: 1 });
+
+    // 🔥 KEY FIX: FIT TO SCREEN WIDTH
+    const scale = container.clientWidth / viewport.width;
+    const scaledViewport = page.getViewport({ scale });
+
+    const pageDiv = document.createElement("div");
+    pageDiv.className = "page";
 
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
 
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
+    canvas.width = scaledViewport.width;
+    canvas.height = scaledViewport.height;
 
-    container.appendChild(canvas);
+    pageDiv.appendChild(canvas);
+    container.appendChild(pageDiv);
 
     await page.render({
       canvasContext: context,
-      viewport: viewport
+      viewport: scaledViewport
     }).promise;
   }
 }
 
 renderPDF();
+
+// Re-render on rotation (important for iPhone)
+window.addEventListener("resize", () => {
+  container.innerHTML = "";
+  renderPDF();
+});
 </script>
 
 </body>
