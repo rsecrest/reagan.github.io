@@ -17,33 +17,33 @@ html, body {
   background: #111;
 }
 
-/* full screen scroll container */
+/* smooth vertical slide container */
 #viewer {
   position: fixed;
   inset: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  scroll-snap-type: y mandatory;
 }
 
-/* each page becomes a full-screen “slide” */
+/* each page is a full screen slide */
 .page {
-  width: 100vw;
   height: 100vh;
+  width: 100vw;
 
   display: flex;
   align-items: center;
   justify-content: center;
+
+  scroll-snap-align: start;
 }
 
-/* canvas always centered */
+/* canvas fits cleanly */
 canvas {
   max-width: 100vw;
   max-height: 100vh;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   background: white;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 }
 </style>
 </head>
@@ -64,44 +64,52 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 async function renderPDF() {
   const pdf = await pdfjsLib.getDocument(url).promise;
 
+  const screenW = window.innerWidth;
+  const screenH = window.innerHeight;
+
+  // PRE-CREATE ALL PAGES FIRST (no loading feel)
+  const pages = [];
+
   for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-
-    const viewport = page.getViewport({ scale: 1 });
-
-    // 🔥 KEY FIX: FIT TO SCREEN (width OR height — whichever is limiting)
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-
-    const scale = Math.min(
-      screenWidth / viewport.width,
-      screenHeight / viewport.height
-    );
-
-    const scaledViewport = page.getViewport({ scale });
-
     const pageDiv = document.createElement("div");
     pageDiv.className = "page";
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
-    canvas.width = scaledViewport.width;
-    canvas.height = scaledViewport.height;
-
     pageDiv.appendChild(canvas);
     viewer.appendChild(pageDiv);
 
-    await page.render({
-      canvasContext: ctx,
-      viewport: scaledViewport
-    }).promise;
+    pages.push({ pageNum: i, canvas, ctx });
   }
+
+  // RENDER ALL PAGES (parallel feel using Promise.all)
+  await Promise.all(
+    pages.map(async (item) => {
+      const page = await pdf.getPage(item.pageNum);
+      const viewport = page.getViewport({ scale: 1 });
+
+      const scale = Math.min(
+        screenW / viewport.width,
+        screenH / viewport.height
+      );
+
+      const scaledViewport = page.getViewport({ scale });
+
+      item.canvas.width = scaledViewport.width;
+      item.canvas.height = scaledViewport.height;
+
+      await page.render({
+        canvasContext: item.ctx,
+        viewport: scaledViewport
+      }).promise;
+    })
+  );
 }
 
 renderPDF();
 
-/* FIX iPhone orientation changes */
+/* keep perfect fit on rotate */
 window.addEventListener("resize", () => {
   viewer.innerHTML = "";
   renderPDF();
