@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Resume Admin</title>
+
+<style>
+body{
+  max-width:600px;
+  margin:40px auto;
+  font-family:Arial;
+  padding:20px;
+}
+
+input,button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+}
+
+button{
+  cursor:pointer;
+}
+
+#status{
+  margin-top:20px;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Resume Admin Panel</h2>
+
+<input type="file" id="file" accept=".pdf">
+
+<button onclick="upload()">Upload / Replace Resume</button>
+
+<button onclick="deleteResume()" style="background:red;color:white;">
+Delete Resume
+</button>
+
+<p id="status"></p>
+
+<script>
+
+const API = "https://solitary-bar-13d6.luisandreagan.workers.dev";
+
+async function upload() {
+  const file = document.getElementById("file").files[0];
+
+  if (!file) {
+    alert("Select a PDF first");
+    return;
+  }
+
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(API + "/upload", {
+    method: "POST",
+    body: form
+  });
+
+  document.getElementById("status").innerText = await res.text();
+}
+
+async function deleteResume() {
+  const res = await fetch(API + "/delete", {
+    method: "DELETE"
+  });
+
+  document.getElementById("status").innerText = await res.text();
+}
+
+</script>
+
+</body>
+</html>
