@@ -1,24 +1,187 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Reagan Secrest - Resume</title>
+<meta charset="UTF-8">
+<title>Reagan Secrest - Resume</title>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="favicon.jpg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<link rel="icon" type="image/jpeg" href="favicon.jpg">
+
+<style>
+html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #111;
+}
+
+/* PDF VIEWER */
+#viewer {
+    position: fixed;
+    top: 20px;
+    left: 0;
+    right: 0;
+    bottom: 70px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+canvas {
+    max-width: 100vw;
+    max-height: 100%;
+    background: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+/* BOTTOM BAR */
+.bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+
+    height: 70px;
+    width: 100%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+
+    border-top: 1px solid #333;
+    background: transparent;
+}
+
+/* BUTTON STYLE (ICON + TEXT) */
+.action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    background: transparent;
+    border: none;
+
+    color: white;
+    font-size: 12px;
+
+    cursor: pointer;
+}
+
+/* ICON SIZE */
+.action-btn span.icon {
+    font-size: 22px;
+    margin-bottom: 3px;
+}
+</style>
 </head>
+
 <body>
+
+<!-- PDF -->
+<div id="viewer"></div>
+
+<!-- BOTTOM ACTIONS -->
+<div class="bottom-bar">
+
+    <button class="action-btn" onclick="addContact()">
+        <span class="icon">👤</span>
+        Add Contact
+    </button>
+
+    <button class="action-btn" onclick="downloadPDF()">
+        <span class="icon">⬇️</span>
+        Download
+    </button>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
 <script>
-    window.location.href = "https://solitary-bar-13d6.luisandreagan.workers.dev/pdf";
+
+const pdfURL = "https://solitary-bar-13d6.luisandreagan.workers.dev/pdf";
+const viewer = document.getElementById("viewer");
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+async function renderPDF() {
+    const pdf = await pdfjsLib.getDocument(pdfURL).promise;
+
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 1 });
+
+    const scale = Math.min(
+        window.innerWidth / viewport.width,
+        (window.innerHeight - 90) / viewport.height
+    );
+
+    const scaled = page.getViewport({ scale });
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const ratio = window.devicePixelRatio || 1;
+
+    canvas.width = scaled.width * ratio;
+    canvas.height = scaled.height * ratio;
+
+    canvas.style.width = scaled.width + "px";
+    canvas.style.height = scaled.height + "px";
+
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    viewer.appendChild(canvas);
+
+    await page.render({
+        canvasContext: ctx,
+        viewport: scaled
+    }).promise;
+}
+
+renderPDF();
+
+/* CONTACT */
+function addContact() {
+    const vcard = `
+BEGIN:VCARD
+VERSION:3.0
+FN:Reagan Secrest
+TEL:727-967-0412
+EMAIL:reagansecrest@example.com
+END:VCARD
+`;
+
+    const blob = new Blob([vcard], { type: "text/vcard" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "reagan-secrest.vcf";
+    a.click();
+}
+
+/* DOWNLOAD */
+function downloadPDF() {
+    const a = document.createElement("a");
+    a.href = pdfURL;
+    a.download = "Reagan-Secrest-Resume.pdf";
+    a.click();
+}
+
+/* rotate fix */
+window.addEventListener("resize", () => {
+    viewer.innerHTML = "";
+    renderPDF();
+});
+
 </script>
+
 </body>
 </html>
-
-
-
-
-
-
-
-
-
