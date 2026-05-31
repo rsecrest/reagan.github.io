@@ -168,12 +168,21 @@ END:VCARD
 }
 
 /* DOWNLOAD */
-function downloadPDF() {
+async function downloadPDF() {
+    const response = await fetch(pdfURL);
+    const blob = await response.blob();
+
+    const url = URL.createObjectURL(blob);
+
     const a = document.createElement("a");
-    a.href = pdfURL;
+    a.href = url;
     a.download = "Reagan-Secrest-Resume.pdf";
+
+    document.body.appendChild(a);
     a.click();
-}
+    a.remove();
+
+    URL.revokeObjectURL(url);
 
 /* rotate fix */
 window.addEventListener("resize", () => {
