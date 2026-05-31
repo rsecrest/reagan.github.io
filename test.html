@@ -1,53 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Reagan Secrest - Resume</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Reagan Resume</title>
 
 <link rel="icon" type="image/jpeg" href="favicon.jpg">
 
 <style>
 html, body {
-    margin: 0;
-    height: 100%;
-    background: #111;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #111;
 }
 
-/* Full screen center container */
-.container {
-    height: 100vh;
-    width: 100vw;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    padding: 10px;
-    box-sizing: border-box;
+/* full screen scroll container */
+#viewer {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* PDF frame */
-iframe {
-    width: 100%;
-    height: 95vh;
-    max-width: 900px;   /* keeps it nicely centered on large screens */
-    border: none;
-    background: white;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    border-radius: 10px;
+/* each page becomes a full-screen “slide” */
+.page {
+  width: 100vw;
+  height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* canvas always centered */
+canvas {
+  max-width: 100vw;
+  max-height: 100vh;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  background: white;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-    <iframe 
-        src="https://solitary-bar-13d6.luisandreagan.workers.dev/pdf">
-    </iframe>
-</div>
+<div id="viewer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<script>
+const url = "https://solitary-bar-13d6.luisandreagan.workers.dev/pdf";
+const viewer = document.getElementById("viewer");
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+async function renderPDF() {
+  const pdf = await pdfjsLib.getDocument(url).promise;
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+
+    const viewport = page.getViewport({ scale: 1 });
+
+    // 🔥 KEY FIX: FIT TO SCREEN (width OR height — whichever is limiting)
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    const scale = Math.min(
+      screenWidth / viewport.width,
+      screenHeight / viewport.height
+    );
+
+    const scaledViewport = page.getViewport({ scale });
+
+    const pageDiv = document.createElement("div");
+    pageDiv.className = "page";
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = scaledViewport.width;
+    canvas.height = scaledViewport.height;
+
+    pageDiv.appendChild(canvas);
+    viewer.appendChild(pageDiv);
+
+    await page.render({
+      canvasContext: ctx,
+      viewport: scaledViewport
+    }).promise;
+  }
+}
+
+renderPDF();
+
+/* FIX iPhone orientation changes */
+window.addEventListener("resize", () => {
+  viewer.innerHTML = "";
+  renderPDF();
+});
+</script>
 
 </body>
 </html>
