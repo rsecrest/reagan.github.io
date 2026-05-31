@@ -16,84 +16,97 @@ html, body {
     background: #111;
 }
 
+/* PDF VIEWER */
 #viewer {
     position: fixed;
-    inset: 0;
+    top: 20px;
+    left: 0;
+    right: 0;
+    bottom: 70px;
+
     display: flex;
     justify-content: center;
     align-items: center;
-    padding-bottom: 90px;
+
+    padding: 10px;
+    box-sizing: border-box;
 }
 
 canvas {
     max-width: 100vw;
-    max-height: 100vh;
+    max-height: 100%;
     background: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
-/* Floating buttons */
-.fab-container {
+/* BOTTOM BAR */
+.bottom-bar {
     position: fixed;
-    bottom: 90px;
-    right: 20px;
+    bottom: 0;
+    left: 0;
+
+    height: 70px;
+    width: 100%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+
+    border-top: 1px solid #333;
+    background: transparent;
+}
+
+/* BUTTON STYLE (ICON + TEXT) */
+.action-btn {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-}
+    align-items: center;
+    justify-content: center;
 
-.fab-container.hidden {
-    display: none;
-}
-
-.fab {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
+    background: transparent;
     border: none;
+
     color: white;
-    font-size: 18px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    font-size: 12px;
+
+    cursor: pointer;
 }
 
-.main-fab {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: none;
-    background: #1e90ff;
-    color: white;
-    font-size: 26px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+/* ICON SIZE */
+.action-btn span.icon {
+    font-size: 22px;
+    margin-bottom: 3px;
 }
-
-.call { background: #28a745; }
-.email { background: #ff9800; }
-.contact { background: #6c63ff; }
-
 </style>
 </head>
 
 <body>
 
+<!-- PDF -->
 <div id="viewer"></div>
 
-<div class="fab-container hidden" id="fabMenu">
-    <button class="fab call" onclick="callNow()">📞</button>
-    <button class="fab email" onclick="sendEmail()">✉️</button>
-    <button class="fab contact" onclick="addContact()">👤</button>
-</div>
+<!-- BOTTOM ACTIONS -->
+<div class="bottom-bar">
 
-<button class="main-fab" onclick="toggleMenu()">+</button>
+    <button class="action-btn" onclick="addContact()">
+        <span class="icon">👤</span>
+        Add Contact
+    </button>
+
+    <button class="action-btn" onclick="downloadPDF()">
+        <span class="icon">⬇️</span>
+        Download
+    </button>
+
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <script>
+
 const pdfURL = "https://solitary-bar-13d6.luisandreagan.workers.dev/pdf";
 const viewer = document.getElementById("viewer");
-const menu = document.getElementById("fabMenu");
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -104,28 +117,23 @@ async function renderPDF() {
     const page = await pdf.getPage(1);
     const viewport = page.getViewport({ scale: 1 });
 
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
-
-    // 🔥 FIT TO SCREEN
     const scale = Math.min(
-        screenW / viewport.width,
-        screenH / viewport.height
+        window.innerWidth / viewport.width,
+        (window.innerHeight - 90) / viewport.height
     );
 
-    const scaledViewport = page.getViewport({ scale });
+    const scaled = page.getViewport({ scale });
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
-    // 🔥 QUALITY FIX (RETINA / HIGH DPI)
     const ratio = window.devicePixelRatio || 1;
 
-    canvas.width = scaledViewport.width * ratio;
-    canvas.height = scaledViewport.height * ratio;
+    canvas.width = scaled.width * ratio;
+    canvas.height = scaled.height * ratio;
 
-    canvas.style.width = scaledViewport.width + "px";
-    canvas.style.height = scaledViewport.height + "px";
+    canvas.style.width = scaled.width + "px";
+    canvas.style.height = scaled.height + "px";
 
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
@@ -133,26 +141,13 @@ async function renderPDF() {
 
     await page.render({
         canvasContext: ctx,
-        viewport: scaledViewport
+        viewport: scaled
     }).promise;
 }
 
 renderPDF();
 
-/* menu toggle */
-function toggleMenu() {
-    menu.classList.toggle("hidden");
-}
-
-/* actions */
-function callNow() {
-    window.location.href = "tel:3210988372";
-}
-
-function sendEmail() {
-    window.location.href = "mailto:reagansecrest@example.com";
-}
-
+/* CONTACT */
 function addContact() {
     const vcard = `
 BEGIN:VCARD
@@ -172,11 +167,20 @@ END:VCARD
     a.click();
 }
 
+/* DOWNLOAD */
+function downloadPDF() {
+    const a = document.createElement("a");
+    a.href = pdfURL;
+    a.download = "Reagan-Secrest-Resume.pdf";
+    a.click();
+}
+
 /* rotate fix */
 window.addEventListener("resize", () => {
     viewer.innerHTML = "";
     renderPDF();
 });
+
 </script>
 
 </body>
