@@ -13,49 +13,50 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #111;
   overflow: hidden;
+  background: #111;
 }
 
-/* Scroll container */
-#viewerContainer {
+/* full screen scroll container */
+#viewer {
   position: fixed;
   inset: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  background: #111;
-  padding: 0;
-}
-
-/* Each page is centered and always fits */
-.page {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  margin: 0;
 }
 
-/* Canvas auto-centers */
+/* each page becomes a full-screen “slide” */
+.page {
+  width: 100vw;
+  height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* canvas always centered */
 canvas {
-  display: block;
-  margin: 0 auto;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  max-width: 100vw;
+  max-height: 100vh;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   background: white;
 }
 </style>
-
 </head>
 
 <body>
 
-<div id="viewerContainer"></div>
+<div id="viewer"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <script>
 const url = "https://solitary-bar-13d6.luisandreagan.workers.dev/pdf";
-
-const container = document.getElementById("viewerContainer");
+const viewer = document.getElementById("viewer");
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -63,29 +64,36 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 async function renderPDF() {
   const pdf = await pdfjsLib.getDocument(url).promise;
 
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page = await pdf.getPage(pageNum);
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
 
     const viewport = page.getViewport({ scale: 1 });
 
-    // 🔥 KEY FIX: FIT TO SCREEN WIDTH
-    const scale = container.clientWidth / viewport.width;
+    // 🔥 KEY FIX: FIT TO SCREEN (width OR height — whichever is limiting)
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    const scale = Math.min(
+      screenWidth / viewport.width,
+      screenHeight / viewport.height
+    );
+
     const scaledViewport = page.getViewport({ scale });
 
     const pageDiv = document.createElement("div");
     pageDiv.className = "page";
 
     const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d");
 
     canvas.width = scaledViewport.width;
     canvas.height = scaledViewport.height;
 
     pageDiv.appendChild(canvas);
-    container.appendChild(pageDiv);
+    viewer.appendChild(pageDiv);
 
     await page.render({
-      canvasContext: context,
+      canvasContext: ctx,
       viewport: scaledViewport
     }).promise;
   }
@@ -93,9 +101,9 @@ async function renderPDF() {
 
 renderPDF();
 
-// Re-render on rotation (important for iPhone)
+/* FIX iPhone orientation changes */
 window.addEventListener("resize", () => {
-  container.innerHTML = "";
+  viewer.innerHTML = "";
   renderPDF();
 });
 </script>
